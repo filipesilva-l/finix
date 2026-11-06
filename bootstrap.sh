@@ -8,7 +8,8 @@
 #                             (o chsh não funciona com o authd)
 set -euo pipefail
 
-NIX_PROFILE_SCRIPT=/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+NIX_PROFILE_SCRIPT="$HOME/.nix-profile/etc/profile.d/nix.sh"
+NIX_CONF="$HOME/.config/nix/nix.conf"
 MARK_BEGIN="# >>> finix: fish >>>"
 MARK_END="# <<< finix: fish <<<"
 
@@ -42,13 +43,19 @@ in_docker_group() {
   getent group docker | cut -d: -f4 | tr ',' '\n' | grep -qxF "$USER"
 }
 
-# 1. Nix (já com flakes habilitados pelo instalador da Determinate Systems)
+# 1. Nix (instalação single-user, sem daemon) com flakes habilitados
 if load_nix; then
   log "Nix já instalado ($(nix --version))"
 else
-  log "Instalando Nix (Determinate Systems)"
-  curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix \
-    | sh -s -- install --no-confirm
+  log "Instalando Nix (--no-daemon)"
+  curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install | sh -s -- --no-daemon
+  load_nix || { echo "Nix instalado, mas não foi possível carregá-lo." >&2; exit 1; }
+fi
+
+mkdir -p "$(dirname "$NIX_CONF")"
+if ! grep -qs '^extra-experimental-features.*flakes' "$NIX_CONF"; then
+  log "Habilitando flakes em $NIX_CONF"
+  echo 'extra-experimental-features = flakes nix-command' >"$NIX_CONF"
 fi
 
 # 2. Docker (repositório oficial) e acesso sem sudo
