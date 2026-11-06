@@ -79,7 +79,6 @@ else
   sudo apt-get update
   sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 fi
-sudo systemctl enable --now docker
 
 getent group docker >/dev/null || sudo groupadd docker
 if ! in_docker_group; then
